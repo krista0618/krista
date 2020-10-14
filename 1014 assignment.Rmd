@@ -1,0 +1,310 @@
+---
+title: "1014 과제"
+author: "김정진"
+date: '2020 10 7 '
+output:
+---
+
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(warning = TRUE, message = TRUE)
+options(knitr.duplicate.label = "allow")
+
+library(ISLR)
+library(MASS)
+
+#1. This problem is related with problem 11 in 4.7 Exercise. Use the following code to define yourtrain and test data to answer the questions. Solve d, e, f, g with the explanatory variables:cylinders + displacement + weight.
+
+Auto = na.omit(Auto)
+Auto$name = NULL
+
+mpg01 = rep( 0, dim(Auto)[1])
+mpg01[ Auto$mpg > median(Auto$mpg) ] = 1 
+
+
+Auto$mpg01 = mpg01
+Auto$mpg = NULL
+head(Auto)
+dim(Auto)
+n = dim(Auto)[1]
+
+
+set.seed(1)
+inds.full=1:n
+inds.train = sample(1:n,294)
+inds.test = inds.full[-inds.train]
+length(inds.train)
+length(inds.test)
+Auto.test=Auto[inds.test,]
+Auto.train=Auto[inds.train,]
+mpg01.test = mpg01[inds.test]
+
+
+lda.fit = lda(mpg01 ~ cylinders + weight + displacement, data = Auto, subset = inds.train)
+lda.pred = predict(lda.fit, Auto.test)
+mean(lda.pred$class != mpg01.test)
+
+qda.fit = qda(mpg01~cylinders + weight + displacement, data = Auto, subset = inds.train)
+qda.pred = predict(qda.fit, Auto.test)
+mean(qda.pred$class !=mpg01.test)
+
+qda.class = predict(qda.fit, Auto.test)$class
+table = table(qda.class, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+
+glm.fit<-glm(mpg01~cylinders + weight + displacement, data = Auto, family = binomial, subset = inds.train)
+glm.probs<-predict(glm.fit, Auto.test, type = "response")
+glm.pred = rep(0, length(glm.probs))
+glm.pred[glm.probs>0.5] =1
+mean(glm.pred!= mpg01.test)
+
+library(class)
+train.x<-cbind(Auto$cylinders, Auto$weight, Auto$displacement)[inds.train,]
+test.x<-cbind(Auto$cylinders, Auto$weight, Auto$displacement)[inds.test,]
+train.mpg01 = mpg01[inds.train]
+
+set.seed(1)
+knn.pred_1<-knn(train.x, test.x, train.mpg01, k = 1)
+table = table(knn.pred_1, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+set.seed(1)
+knn.pred_3<-knn(train.x, test.x, train.mpg01, k = 3)
+table = table(knn.pred_3, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+set.seed(1)
+knn.pred_5<-knn(train.x, test.x, train.mpg01, k = 5)
+table = table(knn.pred_5, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+set.seed(1)
+knn.pred_7<-knn(train.x, test.x, train.mpg01, k = 7)
+table = table(knn.pred_7, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+set.seed(1)
+knn.pred_9<-knn(train.x, test.x, train.mpg01, k = 9)
+table = table(knn.pred_9, mpg01.test)
+(table[1,2] + table[2,1]) / sum(table)
+
+
+
+```
+
+
+
+```{r setup, echo = FALSE}
+options(knitr.duplicate.label = "allow")
+
+library(MASS)
+library(ISLR)
+library(boot)
+
+#5, Solve part (a), (b), (c), (d), and (e) for the problem 8 in 5.4 Exercise but try with 10 - fold CV instead of LOOCV. (문제에서는 LOOCV 방법을 사용하게 되어 있지만 10-fold CV를 사용해서 문제를 풀어주세요.)
+
+#(a)
+set.seed(1)
+x<-rnorm(100)
+y<-x-2*x^2 + rnorm(100)
+
+#(b)
+plot(x,y)
+
+
+#(c)
+dataframe = data.frame(x,y)
+
+set.seed(10)
+cv.error.4 = rep(0,4)
+for (i in 1:4) {
+glm.fit<-glm(y~ poly(x,i), data =dataframe)
+cv.error.4[i] = cv.glm(dataframe, glm.fit, K = 10)$delta[1]
+}
+
+cv.error.4
+
+#(d)
+set.seed(100)
+cv.error.4_2<-rep(0, 4)
+for (i in 1:4) {
+glm.fit2<-glm(y~ poly(x,i), data =dataframe)
+cv.error.4_2[i]<-cv.glm(dataframe,glm.fit2, K=10)$delta[1]
+}
+cv.error.4_2
+
+
+```
+```{r setup, echo = FALSE}
+options(knitr.duplicate.label = "allow")
+library(ISLR)
+
+#(a)
+set.seed(1)
+glm.fit<-glm(default~income+balance, data = Default, family = binomial)
+glm.fit$coefficients
+
+
+#(b)
+
+# i
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+
+
+
+# ii
+glm.fit<-glm(default~income + balance, data = Default, family = binomial, subset = train)
+
+# iii
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train, ], type = "response")
+glm.pred[glm.probs > 0.5] = "Yes"
+
+# iv
+mean(glm.pred!= Default[-train,]$default)
+
+#(C)
+set.seed(3)
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.fit<-glm(default~income + balance, data = Default, family = binomial, subset = train)
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train, ], type = "response")
+glm.pred[glm.probs > 0.5] = "Yes"
+mean(glm.pred!= Default[-train,]$default)
+
+set.seed(131)
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.fit<-glm(default~income + balance, data = Default, family = binomial, subset = train)
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train, ], type = "response")
+glm.pred[glm.probs > 0.5] = "Yes"
+mean(glm.pred!= Default[-train,]$default)
+
+set.seed(171)
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.fit<-glm(default~income + balance, data = Default, family = binomial, subset = train)
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train, ], type = "response")
+glm.pred[glm.probs > 0.5] = "Yes"
+mean(glm.pred!= Default[-train,]$default)
+
+
+#(D)
+
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.fit = glm(default ~ income + balance + student, data = Default, family = binomial, 
+    subset = train)
+glm.pred = rep("No", dim(Default)[1]/2)
+glm.probs = predict(glm.fit, Default[-train, ], type = "response")
+glm.pred[glm.probs > 0.5] = "Yes"
+mean(glm.pred != Default[-train, ]$default)
+```
+
+
+
+```{r setup, echo = FALSE}
+options(knitr.duplicate.label = "allow")
+
+library(MASS)
+library(ISLR)
+library(boot)
+
+#5, Solve part (a), (b), (c), (d), and (e) for the problem 8 in 5.4 Exercise but try with 10 - fold CV instead of LOOCV. (문제에서는 LOOCV 방법을 사용하게 되어 있지만 10-fold CV를 사용해서 문제를 풀어주세요.)
+
+#(a)
+set.seed(1)
+x<-rnorm(100)
+y<-x-2*x^2 + rnorm(100)
+
+#(b)
+plot(x,y)
+
+
+#(c)
+dataframe = data.frame(x,y)
+
+set.seed(10)
+cv.error.4 = rep(0,4)
+for (i in 1:4) {
+glm.fit<-glm(y~ poly(x,i), data =dataframe)
+cv.error.4[i] = cv.glm(dataframe, glm.fit, K = 10)$delta[1]
+}
+
+cv.error.4
+
+#(d)
+set.seed(100)
+cv.error.4_2<-rep(0, 4)
+for (i in 1:4) {
+glm.fit2<-glm(y~ poly(x,i), data =dataframe)
+cv.error.4_2[i]<-cv.glm(dataframe,glm.fit2, K=10)$delta[1]
+}
+cv.error.4_2
+
+
+```
+
+
+
+
+
+
+```{r setup, echo = FALSE}
+options(knitr.duplicate.label = "allow")
+library(MASS)
+library(ISLR)
+install.packages("bootstrap")
+install.packages("boot")
+library(bootstrap)
+library(boot)
+
+#Problem 6. Solve the problem 9 in 5.4 Exercise.
+
+
+#(a)
+medv<-Boston$medv
+mean(medv, na.rm = TRUE)
+
+#(b)
+n = length(Boston$medv)
+sd<-sd(medv)
+standard_error<-sd / sqrt(n)
+standard_error
+
+#(c)
+
+boot.fn<-function(Boston, n)
+  + return(mean(Boston[n]))
+bstrap = boot(medv, boot.fn, 1000)
+bstrap
+
+#(d)
+
+t.test(Boston$medv)
+c(bstrap$t0 - 2*0.4180069, bstrap$t0 + 2* 0.4180069)
+
+#(e)
+
+med = median(Boston$medv)
+med
+
+# (f)
+boot.fn<-function(Boston, n) + return(median(Boston[n]))
+boot(medv, boot.fn, 1000)
+
+#(g)
+boot.fn2<-function(Boston, n) {
+  +return(quantile(Boston$medv[n], prob = 0.1))
+}
+quantile<-quantile(Boston$medv, probs = 0.1)
+quantile
+
+#(h)
+boot(Boston, boot.fn2, R= 1000)
+
+
+```
+
+
